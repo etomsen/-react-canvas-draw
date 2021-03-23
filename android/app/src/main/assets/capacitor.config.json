@@ -1,0 +1,13 @@
+{
+  "appId": "me.tomsen.reactcanvasdraw",
+  "appName": "react-canvas-draw",
+  "bundledWebRuntime": false,
+  "npmClient": "yarn",
+  "webDir": "build",
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 0
+    }
+  },
+  "cordova": {}
+}
