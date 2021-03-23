@@ -6,11 +6,8 @@ export interface CanvasProps {
     width: number;
     height: number;
     background?: CanvasImageSource;
-    line?: {
-        strokeStyle: string | CanvasGradient | CanvasPattern;
-        lineJoin: CanvasLineJoin;
-        lineWidth: number;
-    }
+    lineStroke?: string | CanvasGradient | CanvasPattern;
+    lineWidth?: number;
 }
 
 type Coordinate = {
@@ -32,21 +29,24 @@ export function clearCanvas(ref: HTMLCanvasElement) {
     ref.getContext('2d')?.clearRect(0, 0, ref.width, ref.height);
 }
 
-const CanvasWithRef = forwardRef<HTMLCanvasElement, CanvasProps>(({background, width, height}, ref) => {
+const CanvasWithRef = forwardRef<HTMLCanvasElement, CanvasProps>((
+    {background, width, height, lineWidth, lineStroke},
+    ref
+) => {
     const canvasRef = useSyncedRef<HTMLCanvasElement>(ref);
     const [isPainting, setIsPainting] = useState(false);
     const [mousePosition, setMousePosition] = useState<Coordinate | undefined>(undefined);
 
-    const drawLine = (originalMousePosition: Coordinate, newMousePosition: Coordinate) => {
+    const drawLine = useCallback((originalMousePosition: Coordinate, newMousePosition: Coordinate) => {
         if (!canvasRef.current) {
             return;
         }
         const canvas: HTMLCanvasElement = canvasRef.current;
         const context = canvas.getContext('2d');
         if (context) {
-            context.strokeStyle = 'red';
+            context.strokeStyle = lineStroke || 'red';
             context.lineJoin = 'round';
-            context.lineWidth = 5;
+            context.lineWidth = lineWidth || 5;
 
             context.beginPath();
             context.moveTo(originalMousePosition.x, originalMousePosition.y);
@@ -55,18 +55,28 @@ const CanvasWithRef = forwardRef<HTMLCanvasElement, CanvasProps>(({background, w
 
             context.stroke();
         }
-    };
+    }, [canvasRef, lineStroke, lineWidth]);
 
-    const getCoordinates = useCallback((event: MouseEvent): Coordinate | undefined => {
+    const getCoordinates = useCallback((event: MouseEvent | TouchEvent): Coordinate | undefined => {
         if (!canvasRef.current) {
             return;
         }
 
         const canvas: HTMLCanvasElement = canvasRef.current;
-        return { x: event.pageX - canvas.offsetLeft, y: event.pageY - canvas.offsetTop };
+        if ((event as TouchEvent).changedTouches) {
+            return {
+                x: (event as TouchEvent).changedTouches[0].pageX - canvas.offsetLeft,
+                y: (event as TouchEvent).changedTouches[0].pageY - canvas.offsetTop
+            };
+        } else {
+            return {
+                x: (event as MouseEvent).pageX - canvas.offsetLeft,
+                y: (event as MouseEvent).pageY - canvas.offsetTop
+            };
+        }
     }, [canvasRef]);
 
-    const startPaint = useCallback((event: MouseEvent) => {
+    const startPaint = useCallback((event: MouseEvent | TouchEvent) => {
         const coordinates = getCoordinates(event);
         if (coordinates) {
             setMousePosition(coordinates);
@@ -80,22 +90,25 @@ const CanvasWithRef = forwardRef<HTMLCanvasElement, CanvasProps>(({background, w
         }
         const canvas: HTMLCanvasElement = canvasRef.current;
         canvas.addEventListener('mousedown', startPaint);
+        canvas.addEventListener('touchstart', startPaint);
         return () => {
             canvas.removeEventListener('mousedown', startPaint);
+            canvas.removeEventListener('touchstart', startPaint);
         };
     }, [startPaint, canvasRef]);
 
     const paint = useCallback(
-        (event: MouseEvent) => {
+        (event: MouseEvent | TouchEvent) => {
             if (isPainting) {
                 const newMousePosition = getCoordinates(event);
+                console.log('newMousePosition', newMousePosition);
                 if (mousePosition && newMousePosition) {
                     drawLine(mousePosition, newMousePosition);
                     setMousePosition(newMousePosition);
                 }
             }
         },
-        [isPainting, mousePosition, getCoordinates]
+        [isPainting, mousePosition, getCoordinates, drawLine]
     );
 
     useEffect(() => {
@@ -104,8 +117,10 @@ const CanvasWithRef = forwardRef<HTMLCanvasElement, CanvasProps>(({background, w
         }
         const canvas: HTMLCanvasElement = canvasRef.current;
         canvas.addEventListener('mousemove', paint);
+        canvas.addEventListener('touchmove', paint);
         return () => {
             canvas.removeEventListener('mousemove', paint);
+            canvas.removeEventListener('touchmove', paint);
         };
     }, [paint, canvasRef]);
 
@@ -121,8 +136,12 @@ const CanvasWithRef = forwardRef<HTMLCanvasElement, CanvasProps>(({background, w
         const canvas: HTMLCanvasElement = canvasRef.current;
         canvas.addEventListener('mouseup', exitPaint);
         canvas.addEventListener('mouseleave', exitPaint);
+        canvas.addEventListener('touchend', exitPaint);
+        canvas.addEventListener('touchcancel', exitPaint);
         return () => {
             canvas.removeEventListener('mouseup', exitPaint);
+            canvas.removeEventListener('touchend', exitPaint);
+            canvas.removeEventListener('touchcancel', exitPaint);
             canvas.removeEventListener('mouseleave', exitPaint);
         };
     }, [exitPaint, canvasRef]);

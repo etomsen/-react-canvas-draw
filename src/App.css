@@ -8,3 +8,8 @@
   font-size: calc(10px + 2vmin);
   color: white;
 }
+
+.App-wrapper {
+  margin: 8px;
+  overflow: hidden;
+}

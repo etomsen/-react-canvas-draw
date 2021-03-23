@@ -1,4 +1,5 @@
 import React, { useRef, useState } from 'react';
+import useDimensions from "react-cool-dimensions";
 import './App.css';
 import Canvas, { clearCanvas, getCanvasImage } from './Canvas';
 
@@ -12,9 +13,6 @@ function App() {
       const img = new Image();
       img.src = URL.createObjectURL(e.target.files[0]);
       img.onload = () => {
-        // FIXME: use this to check if photo fits
-        // img.naturalHeight
-        // img.naturalWidth
         setImg(img);
       }
     } else {
@@ -44,15 +42,23 @@ function App() {
     clearCanvas(canvasRef.current);
   }
 
-  
+  const ref = useRef<HTMLDivElement | null>(null);
+  const { width } = useDimensions({ref, useBorderBoxSize: true});
+
   return (
-    <>
+    <div className="App-wrapper" ref={ref}>
       <h1 className={'App-Header'}>Annotations Spike</h1>
-      <Canvas width={600} height={600} background={img} ref={(node) => {canvasRef.current = node ? node : undefined;}}></Canvas>
+      <Canvas
+        lineWidth={3}
+        lineStroke="blue"
+        width={width-8}
+        height={width}
+        background={img}
+        ref={(node) => {canvasRef.current = node ? node : undefined;}}></Canvas>
       <input type="file" accept="image/*" capture onChange={uploadImg} />
       <button onClick={exportData}>Save image</button>
       <button onClick={clearData}>Clear image</button>
-    </>
+    </div>
   );
 }
 
