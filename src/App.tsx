@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 import './App.css';
-import Canvas, { getCanvasImage } from './Canvas';
+import Canvas, { clearCanvas, getCanvasImage } from './Canvas';
 
 function App() {
 
@@ -22,10 +22,26 @@ function App() {
     }
   }
 
-  function exportData() {
-    if (canvasRef.current) {
-      getCanvasImage(canvasRef.current, (data) => alert(data));
+  async function exportData() {
+    if (!canvasRef.current) {
+      return;
     }
+    try {
+      const blob = await getCanvasImage(canvasRef.current);
+      const a: HTMLAnchorElement = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'annotations.jpg';
+      a.click();
+    } catch (error) {
+      alert(JSON.stringify(error));
+    }
+  }
+
+  function clearData() {
+    if (!canvasRef.current) {
+      return;
+    }
+    clearCanvas(canvasRef.current);
   }
 
   
@@ -34,7 +50,8 @@ function App() {
       <h1 className={'App-Header'}>Annotations Spike</h1>
       <Canvas width={600} height={600} background={img} ref={(node) => {canvasRef.current = node ? node : undefined;}}></Canvas>
       <input type="file" accept="image/*" capture onChange={uploadImg} />
-      <button onClick={exportData}>click me</button>
+      <button onClick={exportData}>Save image</button>
+      <button onClick={clearData}>Clear image</button>
     </>
   );
 }

@@ -18,8 +18,18 @@ type Coordinate = {
     y: number;
 };
 
-export function getCanvasImage(ref: HTMLCanvasElement, callback: BlobCallback) {
-    return ref.toBlob(callback);
+export async function getCanvasImage(ref: HTMLCanvasElement): Promise<Blob | null> {
+    return new Promise((resolve, reject) => {
+        try {
+            ref.toBlob((result) => resolve(result));
+        } catch (error) {
+            reject(error);
+        }
+    });
+}
+
+export function clearCanvas(ref: HTMLCanvasElement) {
+    ref.getContext('2d')?.clearRect(0, 0, ref.width, ref.height);
 }
 
 const CanvasWithRef = forwardRef<HTMLCanvasElement, CanvasProps>(({background, width, height}, ref) => {
